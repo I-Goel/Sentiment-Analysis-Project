@@ -1,0 +1,67 @@
+"""
+Importing the requisite libraries.
+These inlcude NLTK (Natural Language Tool Kit).
+Specifically withing NLTK, we import the WordNet and SentiWordNet resources.
+"""
+
+import nltk
+from nltk.corpus import wordnet as wn
+from nltk.corpus import sentiwordnet as swn
+
+nltk.download('wordnet')
+nltk.download('sentiwordnet')
+
+
+"""
+SWN analyser - checks if a given word has a score in SentiWordNet.
+Arguments:
+    lemma - The lemma of the word (root form)
+    pos - The Part of Speech (POS) of the word (Noun, Adjective etc). 
+          The score will be different for a lemma depending on its POS.
+    
+    The lemma and pos here were obtained from the Google Natural Language API.
+    However, they can also be obtained thorugh the NLTK Lemmatizer and PorterStemmer methods.
+"""
+
+def check_swn(lemma, pos):
+    tag = ""
+    #Conversion from Google POS naming system to the WN POS tagging system
+    if pos == "ADJ":
+        tag = wn.ADJ
+    elif pos == "NOUN":
+        tag = wn.NOUN
+    elif pos == "ADV":
+        tag = wn.ADV
+    elif tag == "VERB":
+        tag = wn.VERB
+    
+    synsets = wn.synsets(lemma, pos = tag)
+    if not synsets:
+        return 0
+    
+    synset = synsets[0]
+    swn_synset = swn.senti_synset(synset.name())
+            
+    senti_score = swn_synset.pos_score() - swn_synset.neg_score()
+    return senti_score
+
+
+"""
+This method is for when the tag used follows the PennTreebank convention.
+It's an alternate way to convert the POS tag into one that SWN understands.
+"""
+
+def penn_convert(pos_tag):
+    """
+    Convert between the PennTreebank tags to simple Wordnet tags
+    """
+    if pos_tag.startswith('J'):
+        return wn.ADJ
+    elif pos_tag.startswith('N'):
+        return wn.NOUN
+    elif pos_tag.startswith('R'):
+        return wn.ADV
+    elif pos_tag.startswith('V'):
+        return wn.VERB
+    return None
+
