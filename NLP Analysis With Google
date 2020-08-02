@@ -1,0 +1,81 @@
+
+"""
+The necessary libraries are imported here. 
+We use the Google Natural Language API for our purposes here (THIS WAS PAID FOR).
+"""
+
+from google.cloud import language
+from google.cloud.language import enums, types
+
+"""
+This method extracts the relevant entities from a text. Entities are the main things in the sentence that sentiments have been expressed about.
+These are stored along with their score and salience.
+Score is in the range [-1, 1] and shows how positive or negative the sentiment about that entity is.
+Salience is in the range [0, 1] and stores the relative importance of that entity in the sentence.
+"""
+
+def entity_extractor(text):
+    
+    #Setting up Google object for the relevant service
+    client = language.LanguageServiceClient()
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+
+
+    #Analyse and store the various entities detected in the text
+    response = client.analyze_entity_sentiment(document=document)
+    entity_list = []
+    
+    #Creates an entity list
+    for entity in response.entities:
+        entity_list.append((entity.name, entity.sentiment.score, entity.salience))
+    
+    #Returns the entity list
+    return entity_list
+
+
+"""
+This method processes a text and extracts the syntactic elements.
+We get our tokens (each individual item in a sentence), parts-of-speech (noun, adj.) and lemmas(root form of every word)
+We also chunk noun phrases up (consecutive nouns) and merge their lemmas.
+The Google Natural Language API has been used here
+"""    
+
+def syntactic_processing(text):
+    
+    #Creating a Google language object
+    client = language.LanguageServiceClient()
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+
+    #Storing the results of the analysis
+    response = client.analyze_syntax(document=document)
+    
+    #Lists for the tokens, parts-of-speech and lemmas
+    tokens = []
+    pos = []
+    lemma = []
+    
+    #For each token extract the POS, lemma and text
+    for token in response.tokens:
+        tokens.append(token.text.content)
+        pos.append((enums.PartOfSpeech.Tag(token.part_of_speech.tag).name))
+        lemma.append(token.lemma)
+    
+    
+    #Chunking consecutive nouns
+    i = 0
+    while i < (len(tokens) - 1):
+        if pos[i] == 'NOUN' and pos[i+1] == 'NOUN':
+            del pos[i+1]
+            tokens[i] = tokens[i] + " " + tokens[i+1]
+            del tokens[i+1]
+            lemma[i] = lemma[i] + " " + lemma[i+1]
+            del lemma[i+1]
+            
+        i += 1
+    
+    return tokens, pos, lemma
+    
